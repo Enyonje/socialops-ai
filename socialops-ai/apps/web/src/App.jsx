@@ -28,6 +28,58 @@ const emptyWorkspaceData = {
   automations: [],
 };
 
+const PUBLIC_ROUTES = {
+  "/": {
+    key: "home",
+    title: "SocialOps AI — AI-Powered Social Media Operations & Agent Workspace",
+    description:
+      "Plan content, enforce approvals, run brand-aware AI agents across Gemini, Groq, OpenAI & DeepSeek, and manage your inbox, analytics, and competitor research in one workspace.",
+  },
+  "/features": {
+    key: "features",
+    title: "Features — Content Studio, AI Agents, Automations & Inbox | SocialOps AI",
+    description:
+      "Explore SocialOps AI modules: multi-provider AI agents, approval workflows, event automations, unified inbox, analytics, and competitor research.",
+  },
+  "/pricing": {
+    key: "pricing",
+    title: "Pricing — Plans for Solo Builders, Teams & Agencies | SocialOps AI",
+    description:
+      "Start free with SocialOps AI or scale across teams and client workspaces with transparent plans.",
+  },
+  "/guides": {
+    key: "guides",
+    title: "Social Media Operations Guides & AI Playbooks | SocialOps AI",
+    description:
+      "Actionable playbooks on content approvals, multi-LLM brand voice consistency, and competitor tracking.",
+  },
+  "/contact": {
+    key: "contact",
+    title: "Contact & Sales — SocialOps AI",
+    description:
+      "Get in touch with SocialOps AI for team rollouts, custom workflows, and agency workspaces.",
+  },
+};
+
+function usePathname() {
+  const [pathname, setPathname] = useState(() => window.location.pathname || "/");
+
+  useEffect(() => {
+    const onPopState = () => setPathname(window.location.pathname || "/");
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const navigate = useCallback((to) => {
+    if (to === window.location.pathname) return;
+    window.history.pushState({}, "", to);
+    setPathname(to);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  return [pathname, navigate];
+}
+
 async function request(path, options = {}) {
   let response;
   try {
@@ -64,13 +116,373 @@ class AppBoundary extends React.Component {
     return { error };
   }
   render() {
-    return this.state.error
-      ? <ErrorBoundaryFallback error={this.state.error} reset={() => this.setState({ error: null, key: this.state.key + 1 })} />
-      : <App key={this.state.key} />;
+    if (this.state.error) {
+      return (
+        <ErrorBoundaryFallback
+          error={this.state.error}
+          reset={() => this.setState({ error: null, key: this.state.key + 1 })}
+        />
+      );
+    }
+    return <React.Fragment key={this.state.key}>{this.props.children}</React.Fragment>;
   }
 }
 
-function App() {
+function PublicSite({ pathname, navigate, hasWorkspace }) {
+  const routeMeta = PUBLIC_ROUTES[pathname] || PUBLIC_ROUTES["/"];
+  const route = routeMeta.key;
+  const [selectedGuide, setSelectedGuide] = useState(null);
+  const [contactForm, setContactForm] = useState({ name: "", email: "", teamSize: "2-10", message: "" });
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    document.title = routeMeta.title;
+    let tag = document.querySelector('meta[name="description"]');
+    if (!tag) {
+      tag = document.createElement("meta");
+      tag.setAttribute("name", "description");
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute("content", routeMeta.description);
+  }, [routeMeta]);
+
+  const modules = [
+    {
+      icon: Sparkles,
+      title: "Multi-Provider AI Agents",
+      summary: "Run role-based agents with your brand voice and guidelines across Gemini, Groq, OpenAI, and DeepSeek.",
+    },
+    {
+      icon: CalendarDays,
+      title: "Content Studio & Calendar",
+      summary: "Draft posts, search your content library, move items through review, and schedule approved publications.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Approval Workflows",
+      summary: "Keep brand standards tight with structured review queues before content goes live.",
+    },
+    {
+      icon: WandSparkles,
+      title: "Event Automations",
+      summary: "Trigger approval requests or agent tasks automatically when drafts are created or approved.",
+    },
+    {
+      icon: Inbox,
+      title: "Unified Inbox",
+      summary: "Triage incoming messages and mentions across channels with read/unread workflows.",
+    },
+    {
+      icon: Target,
+      title: "Competitor Research & Analytics",
+      summary: "Track competitor handles, positioning notes, and channel metrics in one workspace.",
+    },
+  ];
+
+  const guides = [
+    {
+      slug: "approval-workflows",
+      tag: "Operations",
+      title: "How to set up content approvals without bottlenecking publishing",
+      readTime: "4 min read",
+      body: "Define clear draft-to-review rules, pair them with event automations, and schedule only approved items so nothing goes out half-baked.",
+    },
+    {
+      slug: "brand-voice-llms",
+      tag: "AI Agents",
+      title: "Keeping brand voice consistent when switching LLM providers",
+      readTime: "5 min read",
+      body: "Centralize voice, audience, and do/don't guidelines in your workspace profile so every prompt starts with the same context.",
+    },
+    {
+      slug: "competitor-tracking",
+      tag: "Intelligence",
+      title: "A practical framework for tracking competitors across social channels",
+      readTime: "4 min read",
+      body: "Focus on repeatable angles, cadence, and positioning notes rather than vanity metrics alone.",
+    },
+  ];
+
+  return (
+    <div className="public-shell">
+      <header className="public-header">
+        <div className="public-container public-nav-row">
+          <a
+            href="/"
+            onClick={(e) => { e.preventDefault(); setSelectedGuide(null); navigate("/"); }}
+            className="public-brand"
+          >
+            <span className="brand-mark">S</span>
+            <strong>socialops<span>.ai</span></strong>
+          </a>
+
+          <nav className="public-nav" aria-label="Main navigation">
+            {[
+              ["/", "Overview"],
+              ["/features", "Features"],
+              ["/pricing", "Pricing"],
+              ["/guides", "Guides"],
+              ["/contact", "Contact"],
+            ].map(([path, label]) => (
+              <a
+                key={path}
+                href={path}
+                onClick={(e) => { e.preventDefault(); setSelectedGuide(null); navigate(path); }}
+                className={pathname === path ? "active" : ""}
+              >
+                {label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="heading-actions">
+            <a
+              href="/app"
+              onClick={(e) => { e.preventDefault(); navigate("/app"); }}
+              className="primary"
+            >
+              {hasWorkspace ? "Open workspace" : "Get started"} <ArrowUpRight size={15} />
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main className="public-container public-main">
+        {route === "home" && (
+          <>
+            <section className="public-hero">
+              <div className="eyebrow">SOCIAL MEDIA OPERATIONS & AI WORKFLOWS</div>
+              <h1>Run your entire social operation from one focused workspace.</h1>
+              <p>
+                Draft content, enforce approvals, trigger event automations, manage your inbox, track analytics and competitors, and run brand-aware AI agents across Gemini, Groq, OpenAI, and DeepSeek.
+              </p>
+              <div className="heading-actions">
+                <a
+                  href="/app"
+                  onClick={(e) => { e.preventDefault(); navigate("/app"); }}
+                  className="primary"
+                >
+                  {hasWorkspace ? "Go to your workspace" : "Create free workspace"} <ArrowUpRight size={16} />
+                </a>
+                <a
+                  href="/features"
+                  onClick={(e) => { e.preventDefault(); navigate("/features"); }}
+                  className="secondary"
+                >
+                  Explore all modules
+                </a>
+              </div>
+            </section>
+
+            <section className="public-section">
+              <div className="panel-head">
+                <div>
+                  <h2>Everything connected to your brand context</h2>
+                  <p>Click any module to inspect how workflows connect end-to-end.</p>
+                </div>
+                <a
+                  href="/features"
+                  onClick={(e) => { e.preventDefault(); navigate("/features"); }}
+                  className="text-button"
+                >
+                  Full feature breakdown <ChevronRight size={14} />
+                </a>
+              </div>
+              <div className="public-grid">
+                {modules.map(({ icon: Icon, title, summary }) => (
+                  <article className="panel" key={title}>
+                    <div className="agent-avatar"><Icon size={17} /></div>
+                    <h3>{title}</h3>
+                    <p>{summary}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
+        {route === "features" && (
+          <section className="public-section">
+            <div className="eyebrow">PLATFORM CAPABILITIES</div>
+            <h1>Built for real execution, from draft to published queue</h1>
+            <p className="public-lead">
+              Every module shares your workspace brand voice, audience profile, and approval rules.
+            </p>
+            <div className="public-grid">
+              {modules.map(({ icon: Icon, title, summary }) => (
+                <article className="panel" key={title}>
+                  <div className="agent-avatar"><Icon size={17} /></div>
+                  <h2>{title}</h2>
+                  <p>{summary}</p>
+                </article>
+              ))}
+            </div>
+            <div className="panel public-cta-box">
+              <div>
+                <h2>Ready to run it on your own brand?</h2>
+                <p>Create your independent workspace and configure your brand voice in minutes.</p>
+              </div>
+              <a
+                href="/app"
+                onClick={(e) => { e.preventDefault(); navigate("/app"); }}
+                className="primary"
+              >
+                Launch workspace <ArrowUpRight size={15} />
+              </a>
+            </div>
+          </section>
+        )}
+
+        {route === "pricing" && (
+          <section className="public-section">
+            <div className="eyebrow">PRICING</div>
+            <h1>Simple, transparent plans</h1>
+            <p className="public-lead">Start with a self-serve workspace or reach out for agency and multi-team rollouts.</p>
+            <div className="public-grid">
+              {[
+                {
+                  name: "Starter",
+                  price: "$0",
+                  desc: "For solo founders and creators testing AI workflows.",
+                  perks: ["1 workspace & brand profile", "Content Studio & approval queue", "Multi-provider AI Agents & automations"],
+                  cta: "Start free",
+                  href: "/app",
+                },
+                {
+                  name: "Growth",
+                  price: "$49/mo",
+                  desc: "For lean marketing teams shipping daily across channels.",
+                  perks: ["Unlimited drafts & automation rules", "Unified Inbox & Analytics snapshots", "Competitor Research & tracking"],
+                  cta: "Create workspace",
+                  href: "/app",
+                },
+                {
+                  name: "Agency & Custom",
+                  price: "Custom",
+                  desc: "For agencies managing multiple client workspaces.",
+                  perks: ["Multi-workspace setup support", "Custom publishing integrations", "Dedicated onboarding"],
+                  cta: "Talk to sales",
+                  href: "/contact",
+                },
+              ].map((tier) => (
+                <article className="panel public-tier" key={tier.name}>
+                  <div>
+                    <h2>{tier.name}</h2>
+                    <strong className="tier-price">{tier.price}</strong>
+                    <p>{tier.desc}</p>
+                    <ul className="tier-list">
+                      {tier.perks.map((perk) => (
+                        <li key={perk}><Check size={14} /> <span>{perk}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                  <a
+                    href={tier.href}
+                    onClick={(e) => { e.preventDefault(); navigate(tier.href); }}
+                    className="primary full"
+                  >
+                    {tier.cta}
+                  </a>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {route === "guides" && (
+          <section className="public-section">
+            <div className="eyebrow">GUIDES & PLAYBOOKS</div>
+            <h1>Social operations playbooks</h1>
+            <p className="public-lead">Practical workflows for approvals, AI prompting, and channel intelligence.</p>
+            {selectedGuide ? (
+              <article className="panel">
+                <button type="button" className="text-button" onClick={() => setSelectedGuide(null)}>
+                  ← Back to all guides
+                </button>
+                <div className="eyebrow">{selectedGuide.tag} · {selectedGuide.readTime}</div>
+                <h2>{selectedGuide.title}</h2>
+                <p>{selectedGuide.body}</p>
+                <a
+                  href="/app"
+                  onClick={(e) => { e.preventDefault(); navigate("/app"); }}
+                  className="primary"
+                >
+                  Apply this in your workspace
+                </a>
+              </article>
+            ) : (
+              <div className="public-grid">
+                {guides.map((g) => (
+                  <article className="panel" key={g.slug}>
+                    <div className="eyebrow">{g.tag} · {g.readTime}</div>
+                    <h2>{g.title}</h2>
+                    <p>{g.body}</p>
+                    <button type="button" className="text-button" onClick={() => setSelectedGuide(g)}>
+                      Read guide <ChevronRight size={14} />
+                    </button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {route === "contact" && (
+          <section className="public-section">
+            <div className="panel public-contact">
+              <div className="eyebrow">CONTACT & SALES</div>
+              <h1>Tell us about your social operation</h1>
+              <p>Ask about multi-workspace setups, custom integrations, or team onboarding.</p>
+              {submitted ? (
+                <div className="alert alert-success">
+                  <Check size={17} /> Inquiry received. You can also launch a workspace immediately via Get Started.
+                </div>
+              ) : (
+                <form className="brand-form" onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
+                  <label>
+                    Your name
+                    <input required value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} />
+                  </label>
+                  <label>
+                    Work email
+                    <input type="email" required value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} />
+                  </label>
+                  <label>
+                    Team size
+                    <select value={contactForm.teamSize} onChange={(e) => setContactForm({ ...contactForm, teamSize: e.target.value })}>
+                      <option value="1">Solo creator / founder</option>
+                      <option value="2-10">2–10 team members</option>
+                      <option value="11+">11+ / Agency</option>
+                    </select>
+                  </label>
+                  <label>
+                    What would you like to streamline?
+                    <textarea rows="4" required value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} />
+                  </label>
+                  <button type="submit" className="primary">Send inquiry</button>
+                </form>
+              )}
+            </div>
+          </section>
+        )}
+      </main>
+
+      <footer className="public-footer">
+        <div className="public-container public-nav-row">
+          <span>◈ SOCIALOPS AI · Independent social media operations platform</span>
+          <div className="heading-actions">
+            <a href="/features" onClick={(e) => { e.preventDefault(); navigate("/features"); }}>Features</a>
+            <a href="/pricing" onClick={(e) => { e.preventDefault(); navigate("/pricing"); }}>Pricing</a>
+            <a href="/guides" onClick={(e) => { e.preventDefault(); navigate("/guides"); }}>Guides</a>
+            <a href="/app" onClick={(e) => { e.preventDefault(); navigate("/app"); }}>Workspace</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function App({ onBackToSite }) {
   const [workspaceId, setWorkspaceId] = useState(() => localStorage.getItem("socialops.workspace") || "");
   const [workspaceName, setWorkspaceName] = useState("My Workspace");
   const [organizationName, setOrganizationName] = useState("My Organization");
@@ -142,6 +554,10 @@ function App() {
     try { return JSON.parse(localStorage.getItem("socialops.team") || "[]"); } catch { return []; }
   });
   const [teamForm, setTeamForm] = useState({ name: "", email: "", role: "Editor" });
+
+  useEffect(() => {
+    document.title = `${page} — SocialOps AI Workspace`;
+  }, [page]);
 
   useEffect(() => {
     try { localStorage.setItem("socialops.campaigns", JSON.stringify(campaigns)); } catch { }
@@ -547,11 +963,16 @@ function App() {
               Workspace name
               <input required minLength="2" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} />
             </label>
-            <button className="primary full" disabled={bootstrapping}>
+            <button type="submit" className="primary full" disabled={bootstrapping}>
               {bootstrapping ? <LoaderCircle className="spin" size={17} /> : <Plus size={17} />} Create workspace
             </button>
           </form>
           {error && <div className="inline-error"><AlertCircle size={16} />{error}</div>}
+          {onBackToSite && (
+            <button type="button" className="text-button" onClick={onBackToSite}>
+              ← Back to website
+            </button>
+          )}
           <small className="onboard-foot">Independent platform · Your own workspace · No Nexus Core account required</small>
         </div>
       </div>
@@ -606,6 +1027,11 @@ function App() {
         <header className="topbar">
           <div className="crumb"><span>WORKSPACE</span><ChevronRight size={13} /><b>{page}</b></div>
           <div className="top-actions">
+            {onBackToSite && (
+              <button type="button" className="secondary small" onClick={onBackToSite}>
+                Public site
+              </button>
+            )}
             <div className="api-status"><span /> {API}</div>
             <button type="button" className="icon-button" title="Refresh data" onClick={load}>
               <RefreshCw size={17} className={loading ? "spin" : ""} />
@@ -1820,6 +2246,27 @@ function Checklist({ rows }) {
   );
 }
 
+function RouterRoot() {
+  const [pathname, navigate] = usePathname();
+  const hasWorkspace = Boolean(localStorage.getItem("socialops.workspace"));
+
+  if (pathname.startsWith("/app")) {
+    return <App onBackToSite={() => navigate("/")} />;
+  }
+
+  return (
+    <PublicSite
+      pathname={pathname}
+      navigate={navigate}
+      hasWorkspace={hasWorkspace}
+    />
+  );
+}
+
 export default function Root() {
-  return <AppBoundary />;
+  return (
+    <AppBoundary>
+      <RouterRoot />
+    </AppBoundary>
+  );
 }
