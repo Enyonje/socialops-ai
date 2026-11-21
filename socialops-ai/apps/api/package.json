@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "build": "node --check src/server.js && node --check src/app.js && node --check src/routes.js && node --check src/config.js && node --check src/providers.js && node --check src/token-vault.js && node --check src/db.js",
+    "build": "node --check src/server.js && node --check src/app.js && node --check src/routes.js && node --check src/config.js && node --check src/providers.js && node --check src/token-vault.js && node --check src/db.js && node --check src/integrations/linkedin.js && node --check src/publishing/adapters.js && node --check src/publishing/worker.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy"

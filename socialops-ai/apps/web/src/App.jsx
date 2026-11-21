@@ -2250,7 +2250,7 @@ function RouterRoot() {
   const [pathname, navigate] = usePathname();
   const hasWorkspace = Boolean(localStorage.getItem("socialops.workspace"));
 
-  if (pathname.startsWith("/app")) {
+  if (pathname === "/app" || pathname.startsWith("/app/")) {
     return <App onBackToSite={() => navigate("/")} />;
   }
 

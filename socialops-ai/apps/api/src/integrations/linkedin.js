@@ -137,7 +137,7 @@ export async function registerLinkedInRoutes(app) {
 
 // Registering this module installs the live publishing adapter when credentials are configured.
 registerPublishingAdapter(PLATFORM, {
-  get ready() { return linkedinConfigured(); },
+  isReady: linkedinConfigured,
   capabilities: ["text_post", "member_profile"],
   async publish({ account, content }) {
     if (!linkedinConfigured()) throw new Error("LinkedIn publishing is not configured.");

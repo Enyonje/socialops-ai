@@ -16,17 +16,41 @@ const adapters = new Map(platformNames.map((platform) => [platform, {
   },
 }]));
 
+function isAdapterReady(adapter) {
+  try {
+    if (typeof adapter?.isReady === "function") return adapter.isReady() === true;
+    return adapter?.ready === true;
+  } catch {
+    return false;
+  }
+}
+
 export function getPublishingAdapter(platform) {
-  return adapters.get(platform) || null;
+  const adapter = adapters.get(platform);
+  if (!adapter) return null;
+  return { ...adapter, ready: isAdapterReady(adapter) };
 }
 
 export function listPublishingAdapters() {
-  return [...adapters.values()].map(({ platform, ready, capabilities }) => ({ platform, ready, capabilities }));
+  return [...adapters.values()].map((adapter) => ({
+    platform: adapter.platform,
+    ready: isAdapterReady(adapter),
+    capabilities: adapter.capabilities,
+  }));
 }
 
-// Used by provider integration modules when real OAuth/API implementations land.
+// Readiness is evaluated when queried, not frozen when the module is imported.
 export function registerPublishingAdapter(platform, adapter) {
   if (!adapters.has(platform)) throw new Error(`Unsupported social platform: ${platform}`);
   if (!adapter || typeof adapter.publish !== "function") throw new TypeError("Publishing adapter must implement publish()");
-  adapters.set(platform, { platform, ready: adapter.ready === true, capabilities: adapter.capabilities || [], publish: adapter.publish });
+  if (adapter.isReady !== undefined && typeof adapter.isReady !== "function") {
+    throw new TypeError("Publishing adapter isReady must be a function");
+  }
+  adapters.set(platform, {
+    platform,
+    isReady: adapter.isReady,
+    ready: adapter.ready,
+    capabilities: Array.isArray(adapter.capabilities) ? adapter.capabilities : [],
+    publish: adapter.publish,
+  });
 }

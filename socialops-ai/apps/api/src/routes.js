@@ -231,12 +231,18 @@ export async function routes(app) {
         return rep.code(201).send({ organizationId: o.id, workspace: o.workspaces[0] });
     });
 
-    app.get("/api/v1/providers", async () =>
-        providers.map((p) => ({
-            ...p,
-            publishingReady: listPublishingAdapters().find((a) => a.platform === p.id)?.ready === true,
-        }))
-    );
+    app.get("/api/v1/providers", async () => {
+        const adapters = listPublishingAdapters();
+        return providers.map((provider) => {
+            const adapterReady = adapters.find((adapter) => adapter.platform === provider.id)?.ready === true;
+            return {
+                ...provider,
+                ready: adapterReady,
+                publishingReady: adapterReady,
+                integrationStatus: adapterReady ? "CONFIGURED" : "NOT_CONFIGURED",
+            };
+        });
+    });
     app.get("/api/v1/publishing/adapters", async () => listPublishingAdapters());
 
     app.get("/api/v1/workspaces/:wid/brand", async (req) => {
