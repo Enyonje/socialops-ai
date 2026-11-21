@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["socialops"]
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  X
+  PINTEREST
+  THREADS
+
+  @@schema("socialops")
+}
+
+enum ContentStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  FAILED
+
+  @@schema("socialops")
+}
+
+enum PublicationStatus {
+  QUEUED
+  PROCESSING
+  PUBLISHED
+  FAILED
+  CANCELLED
+
+  @@schema("socialops")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("socialops")
+}
+
+model Organization {
+  id         String      @id @default(cuid())
+  name       String
+  createdAt  DateTime    @default(now())
+  workspaces Workspace[]
+
+  @@schema("socialops")
+}
+
+model Workspace {
+  id                 String              @id @default(cuid())
+  name               String
+  organizationId     String
+  createdAt          DateTime            @default(now())
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  socialAccounts     SocialAccount[]
+  contentItems       ContentItem[]
+  approvals          Approval[]
+  agentRuns          AgentRun[]
+  publications       Publication[]
+  interactions       SocialInteraction[]
+  analytics          AnalyticsSnapshot[]
+  brandProfile       BrandProfile?
+  automationRules    AutomationRule[]
+  competitorProfiles CompetitorProfile[]
+
+  @@schema("socialops")
+}
+
+model SocialAccount {
+  id             String         @id @default(cuid())
+  workspaceId    String
+  platform       SocialPlatform
+  accountName    String
+  externalId     String?
+  encryptedToken String?
+  isDevelopment  Boolean        @default(true)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publications   Publication[]
+
+  @@unique([workspaceId, platform, accountName])
+  @@schema("socialops")
+}
+
+model ContentItem {
+  id           String          @id @default(cuid())
+  workspaceId  String
+  title        String
+  body         String          @default("")
+  platform     SocialPlatform?
+  status       ContentStatus   @default(DRAFT)
+  scheduledAt  DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  workspace    Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  publications Publication[]
+
+  @@schema("socialops")
+}
+
+model Publication {
+  id              String            @id @default(cuid())
+  workspaceId     String
+  contentItemId   String
+  socialAccountId String?
+  status          PublicationStatus @default(QUEUED)
+  scheduledAt     DateTime
+  attempts        Int               @default(0)
+  lastError       String?
+  externalPostId  String?
+  publishedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  workspace       Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contentItem     ContentItem       @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  socialAccount   SocialAccount?    @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+
+  @@schema("socialops")
+}
+
+model Approval {
+  id          String         @id @default(cuid())
+  workspaceId String
+  contentId   String
+  status      ApprovalStatus @default(PENDING)
+  note        String?
+  createdAt   DateTime       @default(now())
+  decidedAt   DateTime?
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@schema("socialops")
+}
+
+model AgentRun {
+  id          String    @id @default(cuid())
+  workspaceId String
+  agent       String
+  task        String
+  status      String    @default("COMPLETED")
+  result      String
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@schema("socialops")
+}
+
+model SocialInteraction {
+  id          String         @id @default(cuid())
+  workspaceId String
+  platform    SocialPlatform
+  author      String
+  message     String
+  receivedAt  DateTime       @default(now())
+  isRead      Boolean        @default(false)
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@schema("socialops")
+}
+
+model AnalyticsSnapshot {
+  id          String          @id @default(cuid())
+  workspaceId String
+  platform    SocialPlatform?
+  metric      String
+  value       Float
+  capturedAt  DateTime        @default(now())
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@schema("socialops")
+}
+
+model BrandProfile {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  voice       String    @default("")
+  audience    String    @default("")
+  guidelines  String    @default("")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@schema("socialops")
+}
+
+model AutomationRule {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  trigger     String
+  action      String
+  agentTask   String    @default("")
+  enabled     Boolean   @default(true)
+  runCount    Int       @default(0)
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@schema("socialops")
+}
+
+model CompetitorProfile {
+  id           String         @id @default(cuid())
+  workspaceId  String
+  name         String
+  platform     SocialPlatform
+  handle       String
+  profileUrl   String?
+  notes        String         @default("")
+  followers    Int?
+  lastSyncedAt DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, platform, handle])
+  @@schema("socialops")
+}
